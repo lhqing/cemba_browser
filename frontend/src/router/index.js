@@ -6,6 +6,7 @@ const routerOptions = [
   { path: '/about', component: 'About' },
   { path: '/random', component: 'Random' },
   { path: '/celltype/cluster', component: 'Cluster' },
+  { path: '/overview/rs1', component: 'RS1' },
   { path: '*', component: 'NotFound' } // 404 page
 ]
 
