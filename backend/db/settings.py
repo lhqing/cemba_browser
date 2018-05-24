@@ -1,0 +1,1 @@
+CLIENT_LINK = 'mongodb://localhost:27270/'
