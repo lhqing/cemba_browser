@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify
 import requests
 from random import randint
 from flask_cors import CORS
+from db.query_compute_db import *
 
 
 app = Flask(__name__,
@@ -21,6 +22,17 @@ def random_number():
     return jsonify(response)
 
 
+@app.route('/api/tsne')  # toy api for test
+def random_number():
+    response = {
+        'randomNumber': randint(1, 100)
+    }
+    return jsonify(response)
+
+
+
+
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
@@ -35,3 +47,8 @@ def catch_all(path):
         # therefore we cau use frontend updates without run npm build
         return text
     return render_template("index.html")
+
+
+
+
+
