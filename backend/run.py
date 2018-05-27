@@ -8,8 +8,8 @@ from db.query_compute_db import *
 app = Flask(__name__,
             static_folder="../dist/static",
             template_folder="../dist")
-if app.debug:
-    cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+#if app.debug:
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
     # cors is for allowing other origin (e.g. the node.js server from frontend dev)
     # to access apis in backend. If close, only flask server can use api
 
@@ -22,15 +22,12 @@ def random_number():
     return jsonify(response)
 
 
-@app.route('/api/tsne')  # toy api for test
-def random_number():
+@app.route('/api/tsne')
+def cell_tsne():
     response = {
-        'randomNumber': randint(1, 100)
+        'dataset': get_cell_tsne()
     }
     return jsonify(response)
-
-
-
 
 
 @app.route('/', defaults={'path': ''})
