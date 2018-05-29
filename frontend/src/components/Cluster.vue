@@ -27,7 +27,7 @@ export default {
     background: #d3dce6;
   }
   .bg-purple-light {
-    background: #e5e9f2;
+    background: #FFFFFF;
   }
   .aside {
     min-height: 500px;

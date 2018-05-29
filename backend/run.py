@@ -30,6 +30,16 @@ def cell_tsne():
     return jsonify(response)
 
 
+@app.route('/api/cluster')
+def cell_cluster():
+    dataset, tree = get_cell_tsne_cluster()
+    response = {
+        'dataset': dataset,
+        'cluster_tree': tree
+    }
+    return jsonify(response)
+
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
