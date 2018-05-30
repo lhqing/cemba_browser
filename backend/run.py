@@ -55,15 +55,20 @@ def gene_mc():
 
     print(request.args)
 
-    dataset, gene_info = get_gene_data(db_names=['3C', '4B'],
+    gene_df, gene_info = get_gene_data(db_names=['3C', '4B'],
                                        gene_id=gene_id,
                                        gene_name=gene_name,
                                        mc_type=mc_type,
                                        norm_mc=norm_mc,
-                                       cov_threshold=cov_cutoff)
-    tsne_data_list = get_cell_tsne()
+                                       cov_threshold=cov_cutoff,
+                                       return_df=True)
+    tsne_df = get_cell_tsne(return_df=True)
+    total_df = pd.concat([tsne_df, gene_df], axis=1).dropna(how='any')
+    data_list = [['_id', 'tsne_2_1', 'tsne_2_2', 'cov', 'mc_rate', 'pass']]
+    for index, row in total_df.iterrows():
+        data_list.append([index]+row.tolist())
     response = {
-        'dataset': dataset,
+        'dataset': data_list,
         'gene_info': gene_info
     }
     return jsonify(response)

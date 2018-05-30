@@ -1,9 +1,9 @@
 <template>
   <div>
   <el-row>
-    <el-col>
+    <el-col :span="12">
       <div>
-        <div id="tsne_chart" :style="{width: '600px', height: '600px'}"></div>
+        <div id="tsne_chart" :style="{width: '100%', height: '800px'}"></div>
         <el-form label-position="left" label-width="30%" :model="tsneChartControl">
           <el-form-item label="Cluster Selection">
             <el-select
@@ -30,13 +30,13 @@
         </el-form>
       </div>
     </el-col>
-    <el-col>
-      <div id="tree" :style="{width: '600px', height: '600px'}"></div>
+    <el-col :span="12">
+      <div id="tree" :style="{width: '100%', height: '800px'}"></div>
     </el-col>
   </el-row>
   <el-row>
-    <el-col>
-      <div id="gene_chart" :style="{width: '600px', height: '600px'}"></div>
+    <el-col :span="12">
+      <div id="gene_chart" :style="{width: '100%', height: '800px'}"></div>
     </el-col>
     <el-col>
       <div id="gene_sunburst" :style="{width: '600px', height: '600px'}"></div>
@@ -82,8 +82,15 @@ export default {
           {value: 6, label: 'Resolution 1'},
           {value: 7, label: 'Known Region'}]},
       geneChart: null,
+      geneDataset: [['_id', 'tsne_2_1', 'tsne_2_2', 'cov', 'mc%', 'pass'],
+        ['3C_0', -22, 6, 1905, 1.2, true],
+        ['3C_1', 37, 11, 1136, 0.1, true]],
+      geneInfo: {},
       geneChartContorl: {
-        gene: 'cux1',
+        gene: 'Rorb',
+        gene_id: '',
+        mc_type: 'ch',
+        nrom: true,
         symble: 4,
         nromRange: [0, 100]
       }
@@ -174,7 +181,63 @@ export default {
       }
     },
     geneOption () {
-      return {}
+      return {
+        xAxis: {
+          show: false
+        },
+        yAxis: {
+          show: false
+        },
+        tooltip: {
+          trigger: 'item'
+        },
+        visualMap: [{
+          type: 'continuous',
+          min: quantile(this.geneDataset.slice(1).map(x => x[4]), 1),
+          max: quantile(this.geneDataset.slice(1).map(x => x[4]), 99),
+          calculable: true,
+          precision: 1,
+          dimension: 4,
+          top: '10%',
+          outOfRange: {
+            color: ['rgb(200,200,200)'],
+            colorAlpha: [0]
+          },
+          hoverLink: false,
+          realtime: false
+        }, {
+          type: 'piecewise',
+          calculable: false,
+          pieces: [
+            {min: 10}, // 不指定 max，表示 max 为无限大（Infinity）。
+            {max: 10} // 不指定 min，表示 min 为无限大（-Infinity）。
+          ],
+          dimension: 3,
+          bottom: '10%',
+          inRange: {
+            colorAlpha: [0.3, 1]
+          },
+          outOfRange: {
+            color: ['rgba(255,255,255,.0)']
+          },
+          hoverLink: false
+        }],
+        dataset: {
+          source: this.geneDataset
+        },
+        series: [{
+          name: 'gene',
+          type: 'scatter',
+          symbolSize: this.geneChartContorl.symble,
+          encode: {
+            x: 'tsne_2_1',
+            y: 'tsne_2_2'
+          },
+          animation: false,
+          progressive: 100,
+          progressiveThreshold: 3000
+        }]
+      }
     }
   },
   watch: {
@@ -185,8 +248,11 @@ export default {
       this.changeTsneScatter(true)
     },
     treeOption: function () {
-      console.log(this.treeOption)
       this.changeTree(true)
+    },
+    geneOption: function () {
+      console.log('change gene')
+      this.changeGeneScatter(true)
     }
   },
   methods: {
@@ -232,11 +298,30 @@ export default {
         .then(response => {
           this.dataset = response.data.dataset
           this.tree = response.data.cluster_tree
-          console.log(response)
         })
         .catch(error => {
           console.log(error)
         })
+    },
+    getGeneDataFromBackend () {
+      const path = 'http://127.0.0.1:5000/api/gene?gene_name=' + this.geneChartContorl.gene
+      axios.get(path)
+        .then(response => {
+          this.geneDataset = response.data.dataset
+          this.geneInfo = response.data.gene_info
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    setGeneScatter () {
+      let dom = document.getElementById('gene_chart')
+      this.geneChart = this.$echarts.init(dom, 'dark')
+      window.addEventListener('resize', this.geneChart.resize)
+      this.geneChart.setOption(this.geneOption)
+    },
+    changeGeneScatter (notMerge) {
+      this.geneChart.setOption(this.geneOption, true)
     }
   },
   mounted () {
@@ -244,6 +329,7 @@ export default {
       function () {
         this.setTsneScatter()
         this.setTree()
+        this.setGeneScatter()
       }
     )
   },
@@ -252,9 +338,32 @@ export default {
       function () {
         this.$echarts.registerTheme('dark', darkTheme)
         this.getDataFromBackend()
+        this.getGeneDataFromBackend()
       }
     )
   }
+}
+
+function sortNumber (a, b) {
+  return a - b
+}
+
+function quantile (array, percentile) {
+  array.sort(sortNumber)
+  let index = percentile / 100.0 * (array.length - 1)
+  let result = null
+  if (Math.floor(index) === index) {
+    result = array[index]
+  } else {
+    let i = Math.floor(index)
+    let fraction = index - i
+    result = array[i] + (array[i + 1] - array[i]) * fraction
+  }
+  console.log(percentile)
+  console.log(index)
+  console.log(Math.floor(index))
+  console.log(result)
+  return result
 }
 </script>
 

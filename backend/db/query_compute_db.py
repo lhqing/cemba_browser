@@ -5,9 +5,10 @@ from collections import defaultdict
 MOP_DB = CLIENT['MOp']
 
 
-def get_cell_tsne(db=MOP_DB, cell_list=None):
+def get_cell_tsne(db=MOP_DB, cell_list=None, return_df=False):
     """
 
+    :param return_df:
     :param db:
     :param cell_list:
     :return: [['_id', 'tsne_2_1', 'tsne_2_2']]
@@ -23,7 +24,13 @@ def get_cell_tsne(db=MOP_DB, cell_list=None):
         for doc in cursor:
             if doc['_id'] in cell_set:
                 data_list.append([doc['_id']] + doc['tsne_2d'])
-    return data_list
+    if return_df:
+        tsne_df = pd.DataFrame([i[1:] for i in data_list[1:]],
+                               columns=data_list[0][1:],
+                               index=[i[0] for i in data_list[1:]])
+        return tsne_df
+    else:
+        return data_list
 
 
 def get_cluster_tree(cluster_df, root_name):
@@ -97,7 +104,8 @@ def get_cell_tsne_cluster(db=MOP_DB):
     return data_list, tree
 
 
-def get_gene_data(db_names, gene_id=None, gene_name=None, mc_type='ch', norm_mc=True, cov_threshold=5):
+def get_gene_data(db_names, gene_id=None, gene_name=None,
+                  mc_type='ch', norm_mc=True, cov_threshold=5, return_df=False):
     name_series = gene_ref_table['gene_name'].map(lambda i: i.lower())
     if gene_id is None and gene_name is not None:
         one_id = name_series[name_series == gene_name.lower()].index[0]
@@ -118,9 +126,12 @@ def get_gene_data(db_names, gene_id=None, gene_name=None, mc_type='ch', norm_mc=
         cell_dfs.append(cell_df)
     total_df = pd.concat(cell_dfs)
     total_df['pass'] = total_df.iloc[:, 0] > cov_threshold
-    data_list = [['_id'] + total_df.columns.tolist()]
-    for index, row in total_df.iterrows():
-        data_list.append([index] + row.tolist())
     doc['gene_length'] = doc['end'] - doc['start']
-    return data_list, doc
+    if return_df:
+        return total_df.astype(object), doc
+    else:
+        data_list = [['_id'] + total_df.columns.tolist()]
+        for index, row in total_df.iterrows():
+            data_list.append([index] + row.tolist())
+        return data_list, doc
 
