@@ -93,6 +93,34 @@ def get_cell_tsne_cluster(db=MOP_DB):
     data_list = [['_id'] + total_df.columns.tolist()]
     for index, row in total_df.iterrows():
         data_list.append([index] + row.tolist())
-
     tree = get_cluster_tree(cluster_df, 'MOp')
     return data_list, tree
+
+
+def get_gene_data(db_names, gene_id=None, gene_name=None, mc_type='ch', norm_mc=True, cov_threshold=5):
+    name_series = gene_ref_table['gene_name'].map(lambda i: i.lower())
+    if gene_id is None and gene_name is not None:
+        one_id = name_series[name_series == gene_name.lower()].index[0]
+    else:
+        one_id = gene_id
+    mc_key = 'n' if norm_mc else 'r'
+    mc_key += mc_type.lower()[-1]
+    cov_key = mc_type.lower()[-1] + 'c'
+
+    cell_dfs = []
+    for db_name in db_names:
+        db = CLIENT[db_name]
+        doc = db['gene'].find_one({'_id': one_id})
+        cells = doc.pop('cells')
+        cell_df = pd.DataFrame([[i[cov_key], i[mc_key]] for i in cells],
+                               columns=['cov', 'mc%'],
+                               index=[i['id'] for i in cells])
+        cell_dfs.append(cell_df)
+    total_df = pd.concat(cell_dfs)
+    total_df['pass'] = total_df.iloc[:, 0] > cov_threshold
+    data_list = [['_id'] + total_df.columns.tolist()]
+    for index, row in total_df.iterrows():
+        data_list.append([index] + row.tolist())
+    doc['gene_length'] = doc['end'] - doc['start']
+    return data_list, doc
+

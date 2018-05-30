@@ -23,19 +23,4 @@ export default {
 </script>
 
 <style>
-  .bg-purple {
-    background: #d3dce6;
-  }
-  .bg-purple-light {
-    background: #FFFFFF;
-  }
-  .aside {
-    min-height: 500px;
-    min-width: 20%;
-  }
-  .main{
-    border-radius: 4px;
-    min-height: 500px;
-    min-width: 50%;
-  }
 </style>

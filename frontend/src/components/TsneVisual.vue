@@ -1,11 +1,15 @@
 <template>
+  <div>
   <el-row>
-    <el-col :span="10">
+    <el-col>
       <div>
         <div id="tsne_chart" :style="{width: '600px', height: '600px'}"></div>
         <el-form label-position="left" label-width="30%" :model="tsneChartControl">
           <el-form-item label="Cluster Selection">
-            <el-select v-model="tsneChartControl.cluster" placeholder="Select Cluster Solution">
+            <el-select
+              v-model="tsneChartControl.cluster"
+              placeholder="Select Cluster Solution"
+              value="tsneChartControl.cluster">
               <el-option
                 v-for="item in tsneChartControl.clusters"
                 :key="item.value"
@@ -26,15 +30,25 @@
         </el-form>
       </div>
     </el-col>
-    <el-col :span="10">
+    <el-col>
       <div id="tree" :style="{width: '600px', height: '600px'}"></div>
     </el-col>
   </el-row>
+  <el-row>
+    <el-col>
+      <div id="gene_chart" :style="{width: '600px', height: '600px'}"></div>
+    </el-col>
+    <el-col>
+      <div id="gene_sunburst" :style="{width: '600px', height: '600px'}"></div>
+    </el-col>
+  </el-row>
+  </div>
 </template>
 
 <script>
 import axios from 'axios'
 import _ from 'lodash'
+import darkTheme from '../assets/dark.json'
 export default {
   name: 'Tsne',
   data () {
@@ -44,8 +58,17 @@ export default {
         ['3C_10', 37, 0, 0, 0, 0, 0, 'L6', -15, -63],
         ['3C_100', 42, 37, 35, 33, 29, 28, 'Pv', -31, 45]
       ],
-      tree: {},
+      tree: {
+        'name': 'data',
+        'children': [
+          {
+            'name': 'converters',
+            'children': [
+              {'name': 'Converters', 'value': 721},
+              {'name': 'DelimitedTextConverter', 'value': 4294}]},
+          {'name': 'DataUtil', 'value': 3322}]},
       treeChart: null,
+      treeChartControl: {},
       tsneChart: null,
       tsneChartControl: {
         symble: 4,
@@ -57,7 +80,12 @@ export default {
           {value: 4, label: 'Resolution 0.7'},
           {value: 5, label: 'Resolution 0.9'},
           {value: 6, label: 'Resolution 1'},
-          {value: 7, label: 'Known Region'}]
+          {value: 7, label: 'Known Region'}]},
+      geneChart: null,
+      geneChartContorl: {
+        gene: 'cux1',
+        symble: 4,
+        nromRange: [0, 100]
       }
     }
   },
@@ -78,7 +106,7 @@ export default {
           orient: 'vertical',
           left: 10,
           top: '20%',
-          bottom: '20%'
+          bottom: '10%'
         },
         grid: {
           left: '20%'
@@ -113,6 +141,39 @@ export default {
       }
     },
     treeOption () {
+      return {
+        tooltip: {
+          trigger: 'item',
+          triggerOn: 'mousemove'
+        },
+        series: [{
+          type: 'sunburst',
+          data: [this.tree],
+          top: '0%',
+          bottom: '20%',
+          left: '40%',
+          right: '0%',
+          highlightPolicy: 'ancestor',
+          levels: [{},
+            {itemStyle: {color: '#076572'}},
+            {itemStyle: {color: '#008496'}},
+            {itemStyle: {color: '#09AA91'}},
+            {itemStyle: {color: '#44C876'}},
+            {itemStyle: {color: '#CCE754'}}]
+        }],
+        emphasis: {
+          itemStyle: {
+            color: '#FFD000'
+          }
+        },
+        highlight: {
+          itemStyle: {
+            color: '#076572'
+          }
+        }
+      }
+    },
+    geneOption () {
       return {}
     }
   },
@@ -121,23 +182,19 @@ export default {
       this.changeTsneScatter(false)
     },
     tsneOption: function () {
-      console.log('symble size')
-      console.log(this.cluster)
       this.changeTsneScatter(true)
+    },
+    treeOption: function () {
+      console.log(this.treeOption)
+      this.changeTree(true)
     }
   },
   methods: {
     setTsneScatter: function () {
       let dom = document.getElementById('tsne_chart')
-      this.tsneChart = this.$echarts.init(dom)
+      this.tsneChart = this.$echarts.init(dom, 'dark')
       window.addEventListener('resize', this.tsneChart.resize)
       this.tsneChart.setOption(this.tsneOption)
-    },
-    setTree: function () {
-      let dom = document.getElementById('tree')
-      this.treeChart = this.$echarts.init(dom)
-      window.addEventListener('resize', this.treeChart.resize)
-      this.treeChart.setOption(this.treeOption)
     },
     getTsneSeries () {
       let symble = this.tsneChartControl.symble
@@ -149,42 +206,52 @@ export default {
           symbolSize: symble,
           data: v.map(x => x.slice(-2)),
           animation: false,
-          large: true,
-          largeThreshold: 1
+          large: false,
+          largeThreshold: 1,
+          progressive: 400,
+          progressiveThreshold: 3000
         }
       }).value()
     },
     changeTsneScatter (notMerge) {
-      console.log('changetsne')
       this.tsneChart.setOption(this.tsneOption, notMerge)
     },
-    getTsneFromBackend () {
+    setTree: function () {
+      let dom = document.getElementById('tree')
+      this.treeChart = this.$echarts.init(dom, 'dark')
+      window.addEventListener('resize', this.treeChart.resize)
+      this.treeChart.setOption(this.treeOption)
+    },
+    changeTree (notMerge) {
+      console.log('changetree')
+      this.treeChart.setOption(this.treeOption, notMerge)
+    },
+    getDataFromBackend () {
       const path = 'http://127.0.0.1:5000/api/cluster'
       axios.get(path)
         .then(response => {
           this.dataset = response.data.dataset
           this.tree = response.data.cluster_tree
+          console.log(response)
         })
         .catch(error => {
           console.log(error)
         })
-    },
-    addSymbleSize () {
-      this.symble = this.symble + 1
-      console.log(this.symble)
     }
   },
   mounted () {
     this.$nextTick(
       function () {
         this.setTsneScatter()
+        this.setTree()
       }
     )
   },
   created () {
     this.$nextTick(
       function () {
-        this.getTsneFromBackend()
+        this.$echarts.registerTheme('dark', darkTheme)
+        this.getDataFromBackend()
       }
     )
   }
