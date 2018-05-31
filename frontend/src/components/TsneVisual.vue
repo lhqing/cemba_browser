@@ -37,6 +37,30 @@
   <el-row>
     <el-col :span="12">
       <div id="gene_chart" :style="{width: '100%', height: '800px'}"></div>
+      <el-form :inline="false" :model="geneChartControlForm">
+        <el-form-item label="Gene">
+          <el-input v-model="geneChartControlForm.gene" placeholder="Input Gene Name"></el-input>
+        </el-form-item>
+        <el-form-item label="mC type">
+          <el-select v-model="geneChartControlForm.mc_type" placeholder="Methylation Type">
+            <el-option label="mCH" value="ch"></el-option>
+            <el-option label="mCG" value="cg"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Normalize by overall methylation">
+          <el-switch
+            v-model="geneChartControlForm.norm"
+            active-color="#13ce66"
+            inactive-color="#ff4949">
+          </el-switch>
+        </el-form-item>
+        <el-form-item label="Gene Base Call Cutoff">
+          <el-input-number v-model="geneChartControlForm.covCutoff" :min="5" :max="200"></el-input-number>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary" @click="updateGeneControl">Update</el-button>
+        </el-form-item>
+      </el-form>
     </el-col>
     <el-col>
       <div id="gene_sunburst" :style="{width: '600px', height: '600px'}"></div>
@@ -86,13 +110,22 @@ export default {
         ['3C_0', -22, 6, 1905, 1.2, true],
         ['3C_1', 37, 11, 1136, 0.1, true]],
       geneInfo: {},
-      geneChartContorl: {
+      geneChartControl: {
         gene: 'Rorb',
         gene_id: '',
         mc_type: 'ch',
-        nrom: true,
+        norm: true,
         symble: 4,
-        nromRange: [0, 100]
+        normRange: [2, 98],
+        covCutoff: 10},
+      geneChartControlForm: {
+        gene: 'Rorb',
+        gene_id: '',
+        mc_type: 'ch',
+        norm: true,
+        symble: 4,
+        normRange: [2, 98],
+        covCutoff: 10
       }
     }
   },
@@ -123,25 +156,29 @@ export default {
             type: 'slider',
             show: true,
             xAxisIndex: [0],
-            throttle: 0
+            throttle: 0,
+            realtime: false
           },
           {
             type: 'slider',
             show: true,
             yAxisIndex: [0],
-            throttle: 0
+            throttle: 0,
+            realtime: false
           },
           {
             type: 'inside',
             show: true,
             xAxisIndex: [0],
-            throttle: 0
+            throttle: 0,
+            realtime: false
           },
           {
             type: 'inside',
             show: true,
             yAxisIndex: [0],
-            throttle: 0
+            throttle: 0,
+            realtime: false
           }
         ],
         series: this.getTsneSeries()
@@ -193,8 +230,8 @@ export default {
         },
         visualMap: [{
           type: 'continuous',
-          min: quantile(this.geneDataset.slice(1).map(x => x[4]), 1),
-          max: quantile(this.geneDataset.slice(1).map(x => x[4]), 99),
+          min: quantile(this.geneDataset.slice(1).map(x => x[4]), this.geneChartControl.normRange[0]),
+          max: quantile(this.geneDataset.slice(1).map(x => x[4]), this.geneChartControl.normRange[1]),
           calculable: true,
           precision: 1,
           dimension: 4,
@@ -209,8 +246,8 @@ export default {
           type: 'piecewise',
           calculable: false,
           pieces: [
-            {min: 10}, // 不指定 max，表示 max 为无限大（Infinity）。
-            {max: 10} // 不指定 min，表示 min 为无限大（-Infinity）。
+            {min: this.geneChartControl.covCutoff}, // 不指定 max，表示 max 为无限大（Infinity）。
+            {max: this.geneChartControl.covCutoff} // 不指定 min，表示 min 为无限大（-Infinity）。
           ],
           dimension: 3,
           bottom: '10%',
@@ -228,7 +265,7 @@ export default {
         series: [{
           name: 'gene',
           type: 'scatter',
-          symbolSize: this.geneChartContorl.symble,
+          symbolSize: this.geneChartControl.symble,
           encode: {
             x: 'tsne_2_1',
             y: 'tsne_2_2'
@@ -252,7 +289,9 @@ export default {
     },
     geneOption: function () {
       console.log('change gene')
-      this.changeGeneScatter(true)
+      setTimeout(
+        this.changeGeneScatter(true), 3000
+      )
     }
   },
   methods: {
@@ -304,7 +343,7 @@ export default {
         })
     },
     getGeneDataFromBackend () {
-      const path = 'http://127.0.0.1:5000/api/gene?gene_name=' + this.geneChartContorl.gene
+      const path = `http://127.0.0.1:5000/api/gene?gene_name=${this.geneChartControl.gene}&mc_type=${this.geneChartControl.mc_type}&normalize=${this.geneChartControl.norm}`
       axios.get(path)
         .then(response => {
           this.geneDataset = response.data.dataset
@@ -322,6 +361,10 @@ export default {
     },
     changeGeneScatter (notMerge) {
       this.geneChart.setOption(this.geneOption, true)
+    },
+    updateGeneControl () {
+      this.geneChartControl = this.geneChartControlForm
+      this.getGeneDataFromBackend()
     }
   },
   mounted () {

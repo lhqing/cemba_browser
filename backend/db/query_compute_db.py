@@ -135,3 +135,8 @@ def get_gene_data(db_names, gene_id=None, gene_name=None,
             data_list.append([index] + row.tolist())
         return data_list, doc
 
+
+def get_gene_name_dict():
+    return [{'id': gene_id, 'name': gene_name}
+            for gene_id, gene_name in
+            gene_ref_table['gene_name'].iteritems()]

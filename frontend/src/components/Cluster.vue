@@ -4,7 +4,7 @@
       <el-aside class="aside bg-purple">
         Aside
       </el-aside>
-      <el-main class="main bg-purple-light">
+      <el-main class="mainx">
         <TsneVisual></TsneVisual>
       </el-main>
     </el-container>

@@ -40,6 +40,15 @@ def cell_cluster():
     return jsonify(response)
 
 
+@app.route('/api/gene_list')
+def gene_id_list():
+    data_list = get_gene_name_dict()
+    response = {
+        'dataset': data_list
+    }
+    return jsonify(response)
+
+
 @app.route('/api/gene/', methods=['GET'])
 def gene_mc():
     gene_id = request.args.get('gene_id')
