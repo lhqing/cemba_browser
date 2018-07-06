@@ -3,7 +3,7 @@
   <el-row>
     <el-col :span="12">
       <div>
-        <div id="tsne_chart" :style="{width: '100%', height: '800px'}"></div>
+        <div id="tsne_chart" :style="{width: '100%', height: '600px'}"></div>
         <el-form label-position="left" label-width="30%" :model="tsneChartControl">
           <el-form-item label="Cluster Selection">
             <el-select
@@ -332,7 +332,7 @@ export default {
       this.treeChart.setOption(this.treeOption, notMerge)
     },
     getDataFromBackend () {
-      const path = 'http://127.0.0.1:5000/api/cluster'
+      const path = 'http://simian:5000/api/cluster'
       axios.get(path)
         .then(response => {
           this.dataset = response.data.dataset
@@ -343,7 +343,7 @@ export default {
         })
     },
     getGeneDataFromBackend () {
-      const path = `http://127.0.0.1:5000/api/gene?gene_name=${this.geneChartControl.gene}&mc_type=${this.geneChartControl.mc_type}&normalize=${this.geneChartControl.norm}`
+      const path = `http://simian:5000/api/gene?gene_name=${this.geneChartControl.gene}&mc_type=${this.geneChartControl.mc_type}&normalize=${this.geneChartControl.norm}`
       axios.get(path)
         .then(response => {
           this.geneDataset = response.data.dataset
